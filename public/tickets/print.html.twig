@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Boleto #{{ ticket.id }}</title>
+  <style>
+    @page { size: 80mm auto; margin: 4mm; }
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      width: 72mm;
+      margin: 0 auto;
+      padding: 6px;
+      font-size: 12px;
+      color: #000;
+    }
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .line { border-top: 1px dashed #000; margin: 8px 0; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .seat-box {
+      border: 2px solid #000;
+      text-align: center;
+      padding: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      margin: 8px 0;
+    }
+    .no-print { text-align: center; margin-top: 14px; }
+    @media print { .no-print { display: none; } }
+  </style>
+</head>
+<body onload="window.print()">
+  <div class="center">
+    <div class="bold" style="font-size: 15px;">{{ settings.company_name|default('TicketVan Lite') }}</div>
+    {% if settings.company_rfc %}<div>RFC: {{ settings.company_rfc }}</div>{% endif %}
+    {% if settings.company_phone %}<div>Tel: {{ settings.company_phone }}</div>{% endif %}
+  </div>
+
+  <div class="line"></div>
+  <div class="row"><span>Folio:</span><span class="bold">#{{ ticket.id }}</span></div>
+  <div class="row"><span>Emisión:</span><span>{{ ticket.created_at|date('d/m/Y H:i') }}</span></div>
+  <div class="row"><span>Estado:</span><span class="bold">{{ ticket.status == 'sold' ? 'VIGENTE' : 'CANCELADO' }}</span></div>
+
+  <div class="line"></div>
+  <div class="bold">ORIGEN:</div>
+  <div>{{ ticket.origin_name }}</div>
+  <div class="bold" style="margin-top:4px;">DESTINO:</div>
+  <div>{{ ticket.destination_name }}</div>
+  <div class="row" style="margin-top:6px;">
+    <span class="bold">SALIDA:</span>
+    <span class="bold">{{ ticket.departure_at|date('d/m/Y H:i') }}</span>
+  </div>
+  <div class="row">
+    <span>UNIDAD:</span>
+    <span>{{ ticket.vehicle_plate }}</span>
+  </div>
+
+  <div class="seat-box">ASIENTO #{{ ticket.seat_number }}</div>
+
+  <div><span class="bold">PASAJERO:</span> {{ ticket.passenger_name }}</div>
+  {% if ticket.passenger_phone %}<div><span class="bold">TEL:</span> {{ ticket.passenger_phone }}</div>{% endif %}
+
+  <div class="line"></div>
+  <div class="row bold" style="font-size: 14px;">
+    <span>TOTAL:</span>
+    <span>${{ ticket.price|number_format(2) }}</span>
+  </div>
+  <div class="row">
+    <span>PAGO:</span>
+    <span>{{ ticket.payment_method == 'cash' ? 'EFECTIVO' : (ticket.payment_method == 'card' ? 'TARJETA' : 'TRANSFERENCIA') }}</span>
+  </div>
+
+  <div class="line"></div>
+  <div class="center" style="font-size: 10px;">
+    {{ settings.ticket_note|default('Conserve este boleto.') }}
+  </div>
+
+  <div class="no-print">
+    <button onclick="window.print()">Imprimir</button>
+    <button onclick="window.close()">Cerrar</button>
+  </div>
+</body>
+</html>

@@ -1,0 +1,69 @@
+{% extends "layouts/main.html.twig" %}
+
+{% block title %}Nueva Corrida{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0 fw-bold">Nueva Corrida</h3>
+  <a href="{{ base_url }}/trips" class="btn btn-outline-secondary">Volver</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <form method="post" action="{{ base_url }}/trips/create" class="row g-3">
+      {{ csrf_field() }}
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Terminal Origen *</label>
+        <select name="origin_branch_id" class="form-select select2" required>
+          <option value="">-- Seleccionar origen --</option>
+          {% for b in branches %}
+          <option value="{{ b.id }}">{{ b.name }} ({{ b.city }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Terminal Destino *</label>
+        <select name="destination_branch_id" class="form-select select2" required>
+          <option value="">-- Seleccionar destino --</option>
+          {% for b in branches %}
+          <option value="{{ b.id }}">{{ b.name }} ({{ b.city }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Vehículo Asignado *</label>
+        <select name="vehicle_id" class="form-select select2" required>
+          <option value="">-- Seleccionar vehículo --</option>
+          {% for v in vehicles %}
+          <option value="{{ v.id }}">{{ v.plate }} - {{ v.name }} ({{ v.total_seat }} asientos)</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Fecha y Hora de Salida *</label>
+        <input type="datetime-local" name="departure_at" class="form-control" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Precio del Boleto ($) *</label>
+        <input type="number" name="price" step="0.01" min="0" class="form-control" placeholder="0.00" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Estado Inicial</label>
+        <select name="status" class="form-select">
+          <option value="scheduled">Programada</option>
+          <option value="boarding">Abordando</option>
+        </select>
+      </div>
+      <div class="col-md-8">
+        <label class="form-label fw-semibold">Notas</label>
+        <input type="text" name="notes" class="form-control" placeholder="Opcional">
+      </div>
+      <div class="col-12 text-end">
+        <button type="submit" class="btn btn-danger px-4">
+          <i class="bi bi-save me-1"></i> Guardar Corrida
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

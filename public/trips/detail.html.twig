@@ -1,0 +1,105 @@
+{% extends "layouts/main.html.twig" %}
+
+{% block title %}Corrida #{{ trip.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0 fw-bold">Corrida #{{ trip.id }}: {{ trip.origin_name }} → {{ trip.destination_name }}</h3>
+  <div class="d-flex gap-2">
+    <a href="{{ base_url }}/trips/{{ trip.id }}/manifest" target="_blank" class="btn btn-dark">
+      <i class="bi bi-printer me-1"></i> Lista de Pasajeros
+    </a>
+    {% if trip.status in ['scheduled', 'boarding'] %}
+    <a href="{{ base_url }}/pos?trip_id={{ trip.id }}" class="btn btn-danger">
+      <i class="bi bi-ticket-perforated me-1"></i> Vender
+    </a>
+    {% endif %}
+    <a href="{{ base_url }}/trips" class="btn btn-outline-secondary">Volver</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-sm-6">
+            <p class="mb-1"><strong>Origen:</strong> {{ trip.origin_name }}</p>
+            <p class="mb-1"><strong>Destino:</strong> {{ trip.destination_name }}</p>
+            <p class="mb-0"><strong>Salida:</strong> {{ trip.departure_at|date('d/m/Y H:i') }}</p>
+          </div>
+          <div class="col-sm-6">
+            <p class="mb-1"><strong>Vehículo:</strong> {{ trip.vehicle_name }} ({{ trip.vehicle_plate }})</p>
+            <p class="mb-1"><strong>Precio:</strong> ${{ trip.price|number_format(2) }}</p>
+            <p class="mb-0"><strong>Ocupación:</strong> {{ trip.sold_seats }} / {{ trip.total_seat }} asientos</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if curr_user.role == 'admin' %}
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <form method="post" action="{{ base_url }}/trips/{{ trip.id }}/status">
+          {{ csrf_field() }}
+          <label class="form-label fw-semibold">Cambiar Estado</label>
+          <div class="input-group">
+            <select name="status" class="form-select">
+              <option value="scheduled" {{ trip.status == 'scheduled' ? 'selected' : '' }}>Programada</option>
+              <option value="boarding" {{ trip.status == 'boarding' ? 'selected' : '' }}>Abordando</option>
+              <option value="departed" {{ trip.status == 'departed' ? 'selected' : '' }}>En camino</option>
+              <option value="completed" {{ trip.status == 'completed' ? 'selected' : '' }}>Completada</option>
+              <option value="cancelled" {{ trip.status == 'cancelled' ? 'selected' : '' }}>Cancelada</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-semibold">Boletos de esta Corrida</div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Asiento</th>
+            <th>Folio</th>
+            <th>Pasajero</th>
+            <th>Teléfono</th>
+            <th>Precio</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tk in tickets %}
+          <tr>
+            <td><span class="badge bg-dark">#{{ tk.seat_number }}</span></td>
+            <td>#{{ tk.id }}</td>
+            <td>{{ tk.passenger_name }}</td>
+            <td>{{ tk.passenger_phone ?: '-' }}</td>
+            <td>${{ tk.price|number_format(2) }}</td>
+            <td>
+              <span class="badge bg-{{ tk.status == 'sold' ? 'success' : 'secondary' }}">
+                {{ tk.status == 'sold' ? 'Vendido' : 'Cancelado' }}
+              </span>
+            </td>
+            <td class="text-end">
+              <a href="{{ base_url }}/tickets/{{ tk.id }}/print" target="_blank" class="btn btn-sm btn-outline-dark">
+                <i class="bi bi-printer"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

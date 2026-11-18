@@ -1,0 +1,344 @@
+{% extends "layouts/main.html.twig" %}
+
+{% block title %}Venta de Boletos{% endblock %}
+
+{% block styles %}
+<style>
+  .seat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    max-width: 340px;
+    margin: 0 auto;
+    padding: 16px;
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 14px;
+  }
+  .seat-btn {
+    height: 48px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.15s ease;
+  }
+  .seat-available {
+    background: #ffffff;
+    border-color: #198754;
+    color: #198754;
+  }
+  .seat-available:hover {
+    background: #e9f7ef;
+  }
+  .seat-selected {
+    background: #0d6efd;
+    border-color: #0a58ca;
+    color: #ffffff;
+  }
+  .seat-occupied {
+    background: #e9ecef;
+    border-color: #dc3545;
+    color: #dc3545;
+    cursor: not-allowed;
+    opacity: 0.75;
+  }
+  .driver-box {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #ced4da;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: #6c757d;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0 fw-bold">Venta de Boletos</h3>
+  <a href="{{ base_url }}/tickets" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-receipt me-1"></i> Boletos Emitidos
+  </a>
+</div>
+
+{% if trips is empty %}
+<div class="alert alert-warning">
+  No hay corridas abiertas para venta. <a href="{{ base_url }}/trips/new" class="alert-link">Programar una corrida</a>.
+</div>
+{% else %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <label class="form-label fw-semibold">Seleccionar Corrida</label>
+        <select id="tripSelector" class="form-select select2">
+          {% for t in trips %}
+          <option value="{{ t.id }}" {{ selected_trip and selected_trip.id == t.id ? 'selected' : '' }}>
+            {{ t.departure_at|date('d/m H:i') }} | {{ t.origin_name }} → {{ t.destination_name }} | ${{ t.price|number_format(2) }} ({{ t.available_seats }} disp.)
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold" id="tripTitle">
+          {% if selected_trip %}
+            {{ selected_trip.origin_name }} → {{ selected_trip.destination_name }}
+          {% endif %}
+        </span>
+        <div class="small">
+          <span class="badge bg-success me-1">Libre</span>
+          <span class="badge bg-primary me-1">Seleccionado</span>
+          <span class="badge bg-danger">Ocupado</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between text-muted small mb-3" id="tripMeta">
+          {% if selected_trip %}
+          <span><i class="bi bi-calendar me-1"></i> {{ selected_trip.departure_at|date('d/m/Y H:i') }}</span>
+          <span><i class="bi bi-truck-front me-1"></i> {{ selected_trip.vehicle_name }} ({{ selected_trip.vehicle_plate }})</span>
+          <span class="fw-bold text-dark">Precio: ${{ selected_trip.price|number_format(2) }}</span>
+          {% endif %}
+        </div>
+
+        <div id="seatMapContainer" class="seat-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-danger text-white fw-semibold">
+        <i class="bi bi-cart-check me-1"></i> Resumen de Venta
+      </div>
+      <div class="card-body">
+        <form id="posForm">
+          <input type="hidden" id="tripIdInput" name="trip_id" value="{{ selected_trip ? selected_trip.id : 0 }}">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Asientos Seleccionados</label>
+            <div id="selectedSeatsDisplay" class="p-2 border rounded bg-light min-h-25">
+              <span class="text-muted small">Haz clic en los asientos disponibles del mapa.</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Pasajero Frecuente (opcional)</label>
+            <select id="passengerSelect" name="passenger_id" class="form-select select2">
+              <option value="">-- Pasajero nuevo / general --</option>
+              {% for p in passengers %}
+              <option value="{{ p.id }}" data-name="{{ p.first_name }} {{ p.last_name }}" data-phone="{{ p.phone }}">
+                {{ p.first_name }} {{ p.last_name }} {% if p.phone %}({{ p.phone }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nombre del Pasajero *</label>
+            <input type="text" id="passengerName" name="passenger_name" class="form-control" placeholder="Nombre completo" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Teléfono</label>
+            <input type="text" id="passengerPhone" name="passenger_phone" class="form-control" placeholder="Opcional">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Método de Pago</label>
+            <select name="payment_method" id="paymentMethod" class="form-select">
+              <option value="cash">Efectivo</option>
+              <option value="card">Tarjeta</option>
+              <option value="transfer">Transferencia</option>
+            </select>
+          </div>
+
+          <div class="border-top pt-3 mb-3 d-flex justify-content-between align-items-center">
+            <span class="fs-5 fw-semibold">Total a Cobrar:</span>
+            <span class="fs-3 fw-bold text-danger" id="totalAmount">$0.00</span>
+          </div>
+
+          <button type="submit" id="btnSell" class="btn btn-danger btn-lg w-100 fw-semibold" disabled>
+            <i class="bi bi-check-circle me-1"></i> Cobrar y Emitir Boleto
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  let currentTrip = {{ selected_trip ? {
+    id: selected_trip.id,
+    price: selected_trip.price,
+    total_seat: selected_trip.total_seat,
+    origin_name: selected_trip.origin_name,
+    destination_name: selected_trip.destination_name,
+    departure_at: selected_trip.departure_at,
+    vehicle_name: selected_trip.vehicle_name,
+    vehicle_plate: selected_trip.vehicle_plate
+  }|json_encode|raw : 'null' }};
+  let soldMap = {{ sold_seats|json_encode|raw }};
+  let selectedSeats = [];
+
+  function renderSeats() {
+    const container = $('#seatMapContainer');
+    container.empty();
+    if (!currentTrip) return;
+
+    container.append('<div class="driver-box"><span><i class="bi bi-steering me-1"></i> Conductor</span><span>Frente</span></div>');
+
+    const total = parseInt(currentTrip.total_seat, 10) || 14;
+    for (let s = 1; s <= total; s++) {
+      const occupied = soldMap && soldMap[s];
+      const isSelected = selectedSeats.includes(s);
+      let cls = 'seat-btn ';
+      let title = 'Asiento ' + s + ' disponible';
+      if (occupied) {
+        cls += 'seat-occupied';
+        title = 'Ocupado por: ' + occupied.passenger_name;
+      } else if (isSelected) {
+        cls += 'seat-selected';
+      } else {
+        cls += 'seat-available';
+      }
+      const btn = $('<button type="button"></button>')
+        .addClass(cls)
+        .attr('title', title)
+        .text(s)
+        .data('seat', s)
+        .prop('disabled', !!occupied);
+      container.append(btn);
+    }
+    updateSummary();
+  }
+
+  function updateSummary() {
+    const box = $('#selectedSeatsDisplay');
+    box.empty();
+    if (selectedSeats.length === 0) {
+      box.html('<span class="text-muted small">Haz clic en los asientos disponibles del mapa.</span>');
+      $('#btnSell').prop('disabled', true);
+    } else {
+      selectedSeats.sort((a, b) => a - b).forEach(s => {
+        box.append('<span class="badge bg-primary me-1 mb-1 fs-6">Asiento #' + s + '</span>');
+      });
+      $('#btnSell').prop('disabled', false);
+    }
+    const price = currentTrip ? parseFloat(currentTrip.price) : 0;
+    const total = price * selectedSeats.length;
+    $('#totalAmount').text('$' + total.toFixed(2));
+  }
+
+  function loadTrip(tripId) {
+    $.getJSON('{{ base_url }}/pos/seats/' + tripId, function(res) {
+      if (!res.success) return;
+      currentTrip = res.trip;
+      soldMap = res.sold_map || {};
+      selectedSeats = [];
+      $('#tripIdInput').val(currentTrip.id);
+      $('#tripTitle').text(currentTrip.origin_name + ' → ' + currentTrip.destination_name);
+      $('#tripMeta').html(
+        '<span><i class="bi bi-calendar me-1"></i> ' + currentTrip.departure_at + '</span>' +
+        '<span><i class="bi bi-truck-front me-1"></i> ' + (currentTrip.vehicle_name || '') + ' (' + currentTrip.vehicle_plate + ')</span>' +
+        '<span class="fw-bold text-dark">Precio: $' + parseFloat(currentTrip.price).toFixed(2) + '</span>'
+      );
+      renderSeats();
+    });
+  }
+
+  $(document).on('click', '.seat-btn', function() {
+    const seat = parseInt($(this).data('seat'), 10);
+    if (selectedSeats.includes(seat)) {
+      selectedSeats = selectedSeats.filter(x => x !== seat);
+    } else {
+      selectedSeats.push(seat);
+    }
+    renderSeats();
+  });
+
+  $('#tripSelector').on('change', function() {
+    loadTrip($(this).val());
+  });
+
+  $('#passengerSelect').on('change', function() {
+    const opt = $(this).find('option:selected');
+    const name = opt.data('name') || '';
+    const phone = opt.data('phone') || '';
+    if (name) {
+      $('#passengerName').val(name);
+      $('#passengerPhone').val(phone);
+    }
+  });
+
+  $('#posForm').on('submit', function(e) {
+    e.preventDefault();
+    if (!currentTrip || selectedSeats.length === 0) return;
+
+    const btn = $('#btnSell');
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Procesando...');
+
+    $.ajax({
+      url: '{{ base_url }}/pos/sell',
+      method: 'POST',
+      data: {
+        csrf_token: $('meta[name="csrf-token"]').attr('content'),
+        trip_id: currentTrip.id,
+        seats: selectedSeats,
+        passenger_id: $('#passengerSelect').val(),
+        passenger_name: $('#passengerName').val(),
+        passenger_phone: $('#passengerPhone').val(),
+        payment_method: $('#paymentMethod').val()
+      },
+      success: function(res) {
+        if (res.success) {
+          const ids = (res.ticket_ids || []).join(',');
+          const printUrl = ids ? '{{ base_url }}/tickets/print?ids=' + encodeURIComponent(ids) : '';
+          let htmlMsg = '<p>' + res.message + '</p>';
+          if (printUrl) {
+            htmlMsg += '<a href="' + printUrl + '" target="_blank" class="btn btn-danger"><i class="bi bi-file-earmark-pdf me-1"></i> Imprimir Boleto(s) PDF</a>';
+          }
+          Swal.fire({
+            title: '¡Venta Realizada!',
+            html: htmlMsg,
+            icon: 'success',
+            confirmButtonColor: '#6c757d',
+            confirmButtonText: 'Cerrar'
+          });
+          $('#passengerSelect').val('').trigger('change');
+          $('#passengerName').val('');
+          $('#passengerPhone').val('');
+          loadTrip(currentTrip.id);
+        } else {
+          Swal.fire('Error', res.message || 'No se pudo emitir el boleto.', 'error');
+        }
+      },
+      error: function(xhr) {
+        const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Error al procesar la venta.';
+        Swal.fire('Error', msg, 'error');
+        loadTrip(currentTrip.id);
+      },
+      complete: function() {
+        btn.prop('disabled', selectedSeats.length === 0).html('<i class="bi bi-check-circle me-1"></i> Cobrar y Emitir Boleto');
+      }
+    });
+  });
+
+  renderSeats();
+})();
+</script>
+{% endblock %}

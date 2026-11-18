@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Lista de Pasajeros - Corrida #{{ trip.id }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; color: #222; }
+    h2, h4 { margin: 0 0 6px 0; }
+    .meta { margin-bottom: 16px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 7px 10px; text-align: left; }
+    th { background: #f2f2f2; }
+    @media print { .no-print { display: none; } }
+  </style>
+</head>
+<body onload="window.print()">
+  <div class="no-print" style="margin-bottom: 15px;">
+    <button onclick="window.print()">Imprimir</button>
+    <button onclick="window.close()">Cerrar</button>
+  </div>
+  <h2>{{ settings.company_name|default('TicketVan Lite') }}</h2>
+  <h4>Lista de Pasajeros - Corrida #{{ trip.id }}</h4>
+  <div class="meta">
+    <strong>Trayecto:</strong> {{ trip.origin_name }} → {{ trip.destination_name }} |
+    <strong>Salida:</strong> {{ trip.departure_at|date('d/m/Y H:i') }} |
+    <strong>Vehículo:</strong> {{ trip.vehicle_name }} ({{ trip.vehicle_plate }}) |
+    <strong>Ocupación:</strong> {{ tickets|length }} / {{ trip.total_seat }}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 70px;">Asiento</th>
+        <th style="width: 70px;">Folio</th>
+        <th>Pasajero</th>
+        <th>Teléfono</th>
+        <th>Precio</th>
+        <th style="width: 90px;">Abordó</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tk in tickets %}
+      <tr>
+        <td><strong>#{{ tk.seat_number }}</strong></td>
+        <td>#{{ tk.id }}</td>
+        <td>{{ tk.passenger_name }}</td>
+        <td>{{ tk.passenger_phone ?: '-' }}</td>
+        <td>${{ tk.price|number_format(2) }}</td>
+        <td>[ &nbsp; ]</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" style="text-align:center;">Sin pasajeros registrados en esta corrida.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{% extends "layouts/main.html.twig" %}
+
+{% block title %}Boleto #{{ ticket.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0 fw-bold">Detalle de Boleto #{{ ticket.id }}</h3>
+  <div>
+    <a href="{{ base_url }}/tickets/{{ ticket.id }}/print" target="_blank" class="btn btn-dark">
+      <i class="bi bi-printer me-1"></i> Imprimir
+    </a>
+    <a href="{{ base_url }}/tickets" class="btn btn-outline-secondary">Volver</a>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <h6 class="text-muted text-uppercase small">Información del Viaje</h6>
+        <p class="mb-1"><strong>Trayecto:</strong> {{ ticket.origin_name }} → {{ ticket.destination_name }}</p>
+        <p class="mb-1"><strong>Salida:</strong> {{ ticket.departure_at|date('d/m/Y H:i') }}</p>
+        <p class="mb-1"><strong>Unidad:</strong> {{ ticket.vehicle_name }} ({{ ticket.vehicle_plate }})</p>
+        <p class="mb-0"><strong>Asiento:</strong> <span class="badge bg-dark fs-6">#{{ ticket.seat_number }}</span></p>
+      </div>
+      <div class="col-md-6">
+        <h6 class="text-muted text-uppercase small">Información del Boleto</h6>
+        <p class="mb-1"><strong>Pasajero:</strong> {{ ticket.passenger_name }}</p>
+        <p class="mb-1"><strong>Teléfono:</strong> {{ ticket.passenger_phone ?: 'N/A' }}</p>
+        <p class="mb-1"><strong>Precio:</strong> ${{ ticket.price|number_format(2) }}</p>
+        <p class="mb-1"><strong>Pago:</strong> {{ ticket.payment_method == 'cash' ? 'Efectivo' : (ticket.payment_method == 'card' ? 'Tarjeta' : 'Transferencia') }}</p>
+        <p class="mb-1"><strong>Taquillero:</strong> {{ ticket.seller_name }}</p>
+        <p class="mb-0"><strong>Estado:</strong>
+          <span class="badge bg-{{ ticket.status == 'sold' ? 'success' : 'secondary' }}">
+            {{ ticket.status == 'sold' ? 'Vendido' : 'Cancelado' }}
+          </span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

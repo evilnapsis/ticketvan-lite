@@ -1,0 +1,79 @@
+{% extends "layouts/main.html.twig" %}
+
+{% block title %}Reporte por Corrida{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0 fw-bold">Reporte por Corrida</h3>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body">
+    <form method="get" action="{{ base_url }}/reportbytrip" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">Salida Desde</label>
+        <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">Salida Hasta</label>
+        <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i> Consultar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Boletos Vendidos</div>
+        <div class="fs-3 fw-bold">{{ grand_tickets }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Ingresos Totales</div>
+        <div class="fs-3 fw-bold text-danger">${{ grand_total|number_format(2) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Salida</th>
+            <th>Trayecto</th>
+            <th>Vehículo</th>
+            <th>Precio</th>
+            <th>Ocupación</th>
+            <th>Ingresos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td><a href="{{ base_url }}/trips/{{ r.id }}">#{{ r.id }}</a></td>
+            <td class="small">{{ r.departure_at|date('d/m/Y H:i') }}</td>
+            <td class="fw-semibold small">{{ r.origin_name }} → {{ r.destination_name }}</td>
+            <td class="small">{{ r.vehicle_plate }}</td>
+            <td>${{ r.price|number_format(2) }}</td>
+            <td><span class="badge bg-dark">{{ r.sold_tickets }} / {{ r.total_seat }}</span></td>
+            <td class="fw-bold text-danger">${{ r.total_amount|number_format(2) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
